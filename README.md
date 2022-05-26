@@ -48,5 +48,6 @@ The project is divided into the next stages:
 ## Well Know limitations
    1. Servo are of 180º. Take into account this all the time. 
 
+![Not real images while we don't have designed parts](https://github.com/juanccilleruelo/KittenArm3D/blob/main/docs/industrialrobots-article-2.jpg)
 
 
