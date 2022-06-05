@@ -11,7 +11,8 @@ Includes alsto the electronic designs, assembly of components and software creat
    Of course, all the documentation is going to be part of the project.
    
    Any collaborator must accept this principles. Branches without a complete documentation will not be merged. 
-
+   
+![Not real images while we don't have designed parts](https://github.com/juanccilleruelo/KittenArm3D/blob/main/docs/2-Figure1-1)
 
 
 Robot arms are usually referred to by their degrees of freedom (DOF). This term indicates the number of rotational joints or axes on a particular arm; for instance, a 4-DOF arm can rotate at four separate joints. The more DOF, the more range of movement possible.
@@ -47,5 +48,6 @@ The project is divided into the next stages:
 ## Well Know limitations
    1. Servo are of 180º. Take into account this all the time. 
 
+![Not real images while we don't have designed parts](https://github.com/juanccilleruelo/KittenArm3D/blob/main/docs/industrialrobots-article-2.jpg)
 
 
