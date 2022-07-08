@@ -1,9 +1,11 @@
 #include <string.h>
 #include <Wire.h>
 //#include <PWMServo.h>
+#include <GCodeParser.h>
 #include <Adafruit_PWMServoDriver.h>  //PCA9685 servo motor driver.
 
-Adafruit_PWMServoDriver ServoDriver = Adafruit_PWMServoDriver();
+Adafruit_PWMServoDriver PWMDriver = Adafruit_PWMServoDriver();
+GCodeParser             GCode     = GCodeParser();
 
 //These values are dependant of the servo manufacurer
 #define SERVOMIN    150 // This is the 'minimum' pulse length count (out of 4096)
@@ -24,29 +26,30 @@ uint8_t numberOfServos = 3;
 uint16_t PulseLen = SERVOMIN;
 
 void setup() {
-   Serial.begin(9600);
+   //Serial.begin(9600);
    //Serial.println(millis());
 
+   Serial.begin(115200);
 
-   //Serial.begin(9600);
-   ServoDriver.begin();
+   Serial.println("Ready");
+   delay(100);
+
+   PWMDriver.begin();
 
    //The frequency is set to 60Hz which is equivalent to a PWM signal with 16.6ms period 
    //that is within the duty cycle range of most servos.
-   ServoDriver.setPWMFreq(60);
+   PWMDriver.setPWMFreq(60);
 
    delay(10);
 
-   //ServoDriver.setPWM(JOINT_1, 0, SERVOMIN + (SERVOMAX - SERVOMIN)/2);
+   //PWMDriver.setPWM(JOINT_1, 0, SERVOMIN + (SERVOMAX - SERVOMIN)/2);
 
-   //ServoDriver.setPWM(JOINT_2, 0, SERVOMIN + (SERVOMAX - SERVOMIN)/2);
+   //PWMDriver.setPWM(JOINT_2, 0, SERVOMIN + (SERVOMAX - SERVOMIN)/2);
 
-   //ServoDriver.setPWM(2, 0, PulseLen);
+   //PWMDriver.setPWM(2, 0, PulseLen);
 }
 
 void loop() {
-
-
    getSerialString();   
 
 
@@ -99,9 +102,10 @@ void getSerialString() {
    if(strlen(StrBuffer) != 0) {
       Serial.print("Received Data : ");
       Serial.println(StrBuffer);
+      ExecuteCommand(StrBuffer);
    };
 
-   ExecuteCommand(StrBuffer);
+   
 }
  /* -------------------------------------------------
   |              getSerialCommands()                |
@@ -124,25 +128,41 @@ void getSerialCommands() {
 }
 
 bool ExecuteCommand(char Command[100]){
-   if (Command == "0") PosJoint1ToHome(); else 
-   if (Command == "1") PosJoint1ToMax();  else
-   if (Command == "2") Serial.println("Command Two"); else
-   if (Command == "3") Serial.println("Command Three"); 
+   //if (Command == "0") PosJoint1ToHome(); else 
+   //if (Command == "1") PosJoint1ToMax();  else
+   //if (Command == "2") Serial.println("Command Two"); else
+   //if (Command == "3") Serial.println("Command Three"); 
    //else Serial.println("Another Command");  
+
+  GCode.ParseLine(Command);
+
+  // Code to process the line of G-Code here…
+  Serial.print("Command Line: ");
+  Serial.println(GCode.line);
+
+  GCode.RemoveCommentSeparators();
+
+  Serial.print("Comment(s): ");
+  Serial.println(GCode.comments);
+      
+  if (GCode.HasWord('G')) {
+     Serial.print("Process G code: ");
+     Serial.println((int)GCode.GetWordValue('G'));
+  }
  }
 
 
 void PosJoint1ToHome(){
-   ServoDriver.setPWM(JOINT_1, 0, SERVOMIN);
+   PWMDriver.setPWM(JOINT_1, 0, SERVOMIN);
 }
 
 void PosJoint1ToMax(){
-   ServoDriver.setPWM(JOINT_1, 0, SERVOMAX);
+   PWMDriver.setPWM(JOINT_1, 0, SERVOMAX);
 }
 
 void SetPosServo(int Servo, int Degrees) {
      Degrees = map(Degrees, SERVOMIN, SERVOMAX, 0, 180);
-     ServoDriver.setPWM(Servo, 0, Degrees);
+     PWMDriver.setPWM(Servo, 0, Degrees);
 }
 
 // You can use this function if you'd like to set the pulse length in seconds
@@ -158,5 +178,5 @@ void setServoPulse(uint8_t n, double pulse) {
   pulse *= 1000000;  // convert input seconds to us
   pulse /= pulseLength;
   Serial.println(pulse);
-  ServoDriver.setPWM(n, 0, pulse);
+  PWMDriver.setPWM(n, 0, pulse);
 }
