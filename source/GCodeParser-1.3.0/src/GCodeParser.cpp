@@ -36,7 +36,6 @@ void GCodeParser::Initialize()
    lastComment                    = comments;
    blockDelete                    = false;
    beginEnd                       = false;
-   completeLineIsAvailableToParse = false;
 }
 
 /// <summary>
@@ -54,38 +53,6 @@ GCodeParser::GCodeParser()
 }
 
 /// <summary>
-/// Adds a character to the line to be parsed.
-/// </summary>
-/// <param name="letter">The character to add.</param>
-/// <returns>True if a complete line is available to parse.</returns>
-/// <remarks>Adding a character after a CR/LF (\r\n - Windows) or LF (\n - Linux, Mac) have been added will reset the line buffer.</remarks>
-/* bool GCodeParser::AddCharToLine(char c)
-{
-   // if a previous line exists, initialize the parser
-   if (completeLineIsAvailableToParse)
-      Initialize();
-
-   // if end of line found, ends, else add character to the line.
-   if (c == '\r' || c == '\n') {
-      if (c == '\n') // Ignore CR (\r)
-      completeLineIsAvailableToParse = true;
-   }
-   else {
-      // Add character to line.
-      line[lineCharCount] = c;
-      lineCharCount++;
-
-      // Deal with buffer overflow by initializing. TODO: Need a better solution.  i.e. Throw error?
-      if (lineCharCount > MAX_LINE_SIZE)
-      Initialize();
-
-      line[lineCharCount] = '\0';
-   }
-
-   return completeLineIsAvailableToParse;
-} */
-
-/// <summary>
 /// Parses the line passed removing spaces, tabs and comments. Comments are shifted to the end of the line buffer.
 /// </summary>
 void GCodeParser::ParseLine(char* Value)
@@ -99,7 +66,6 @@ void GCodeParser::ParseLine(char* Value)
    }
   	
    line[i] = '\n';
-   completeLineIsAvailableToParse;
    ParseLine();
 }
 
