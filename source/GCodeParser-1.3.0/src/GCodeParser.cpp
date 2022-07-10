@@ -22,6 +22,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+Special character codes:
+   % Begins or ends a CNC program
+   () Defines a comment written by a CNC operator; occasionally, these must be in all caps
+   / Ignores all characters that come after the slash
+   ; Determines when a block of code ends, not shown in a text editor
+*/
+
 #include "GCodeParser.h"
 #include <stdlib.h>
 #include <string.h>
@@ -31,11 +39,11 @@ SOFTWARE.
  /// </summary>
 void GCodeParser::Initialize()
 {
-   line[0]                        = '\0';
-   comments                       = line;
-   lastComment                    = comments;
-   blockDelete                    = false;
-   beginEnd                       = false;
+   line[0]          = '\0';
+   comments         = line;
+   lastComment      = comments;
+   IsABlockToIgnore = false;
+   beginEnd         = false;
 }
 
 /// <summary>
@@ -188,9 +196,9 @@ void GCodeParser::ParseLine()
       i++;
    }
 
-   // The optional block delete character the slash '/' when placed first on a line can be used
+   // The optional block deleted character the slash '/' when placed first on a line can be used
    // by some user interfaces to skip lines of code when needed.
-   blockDelete = (line[0] == '/');
+   IsABlockToIgnore = (line[0] == '/');
 
    // The '%' is used to demarcate the beginning (first line) and end (last line) of the program. It is optional if the file has an 'M2' or 'M30'. 
    beginEnd = (line[0] == '%');
@@ -374,7 +382,7 @@ bool GCodeParser::IsWord(char letter)
 /// <remarks>Words are not validated.<remark>
 bool GCodeParser::NoWords()
 {
-   if (line[0] == '\0' || blockDelete || beginEnd) {
+   if (line[0] == '\0' || IsABlockToIgnore || beginEnd) {
       return true;
    }
 

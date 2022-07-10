@@ -56,7 +56,7 @@ public:
    char line[MAX_LINE_SIZE + 2];
    char* comments;
    char* lastComment;
-   bool blockDelete;
+   bool IsABlockToIgnore;
    bool beginEnd;
 
    void Initialize();
