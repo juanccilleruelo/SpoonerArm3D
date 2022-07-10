@@ -39,11 +39,11 @@ Special character codes:
  /// </summary>
 void GCodeParser::Initialize()
 {
-   line[0]          = '\0';
-   comments         = line;
-   lastComment      = comments;
-   IsABlockToIgnore = false;
-   beginEnd         = false;
+   line[0]            = '\0';
+   comments           = line;
+   lastComment        = comments;
+   IsABlockToIgnore   = false;
+   IsABeginOrEndBlock = false;
 }
 
 /// <summary>
@@ -201,7 +201,7 @@ void GCodeParser::ParseLine()
    IsABlockToIgnore = (line[0] == '/');
 
    // The '%' is used to demarcate the beginning (first line) and end (last line) of the program. It is optional if the file has an 'M2' or 'M30'. 
-   beginEnd = (line[0] == '%');
+   IsABeginOrEndBlock = (line[0] == '%');
 }
 
 /// <summary>
@@ -382,7 +382,7 @@ bool GCodeParser::IsWord(char letter)
 /// <remarks>Words are not validated.<remark>
 bool GCodeParser::NoWords()
 {
-   if (line[0] == '\0' || IsABlockToIgnore || beginEnd) {
+   if (line[0] == '\0' || IsABlockToIgnore || IsABeginOrEndBlock) {
       return true;
    }
 

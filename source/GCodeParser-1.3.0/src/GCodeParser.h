@@ -57,7 +57,7 @@ public:
    char* comments;
    char* lastComment;
    bool IsABlockToIgnore;
-   bool beginEnd;
+   bool IsABeginOrEndBlock;
 
    void Initialize();
    GCodeParser();
