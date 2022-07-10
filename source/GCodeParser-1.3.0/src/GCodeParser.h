@@ -50,29 +50,29 @@ const int MAX_LINE_SIZE = 256; // Maximun GCode line size.
 class GCodeParser
 {
 private:
-	int lineCharCount;
+   //int lineCharCount;
+   void ParseLine();
 
-public:  
+public:
    char line[MAX_LINE_SIZE + 2];
-	char* comments;
-	char* lastComment;
-	bool blockDelete;
-	bool beginEnd;
-	bool completeLineIsAvailableToParse;
+   char* comments;
+   char* lastComment;
+   bool blockDelete;
+   bool beginEnd;
+   bool completeLineIsAvailableToParse;
 
-	void Initialize();
-	GCodeParser();
-	bool AddCharToLine(char c);
-	void ParseLine();
-	void ParseLine(char* gCode);
-	void RemoveCommentSeparators();
+   void Initialize();
+   GCodeParser();
+   //bool AddCharToLine(char c);
+   void ParseLine(char* gCode);
+   void RemoveCommentSeparators();
 
-	int FindWord(char letter);
-	bool HasWord(char letter);
-	bool IsWord(char letter);
-	bool NoWords();
+   int FindWord(char letter);
+   bool HasWord(char letter);
+   bool IsWord(char letter);
+   bool NoWords();
 
-	double GetWordValue(char letter);
+   double GetWordValue(char letter);
 };
 
 #endif

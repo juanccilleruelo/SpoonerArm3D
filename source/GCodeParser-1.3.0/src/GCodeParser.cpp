@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2021 Terence Golla
+Copyright (c) 2022 Juan Carlos Cilleruelo Gonzalo
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,8 +31,7 @@ SOFTWARE.
  /// </summary>
 void GCodeParser::Initialize()
 {
-   lineCharCount                  = 0;
-   line[lineCharCount]            = '\0';
+   line[0]                        = '\0';
    comments                       = line;
    lastComment                    = comments;
    blockDelete                    = false;
@@ -60,7 +59,7 @@ GCodeParser::GCodeParser()
 /// <param name="letter">The character to add.</param>
 /// <returns>True if a complete line is available to parse.</returns>
 /// <remarks>Adding a character after a CR/LF (\r\n - Windows) or LF (\n - Linux, Mac) have been added will reset the line buffer.</remarks>
-bool GCodeParser::AddCharToLine(char c)
+/* bool GCodeParser::AddCharToLine(char c)
 {
    // if a previous line exists, initialize the parser
    if (completeLineIsAvailableToParse)
@@ -84,22 +83,23 @@ bool GCodeParser::AddCharToLine(char c)
    }
 
    return completeLineIsAvailableToParse;
-}
+} */
 
 /// <summary>
 /// Parses the line passed removing spaces, tabs and comments. Comments are shifted to the end of the line buffer.
 /// </summary>
-void GCodeParser::ParseLine(char* gCode)
+void GCodeParser::ParseLine(char* Value)
 {
    Initialize();
 
    int i = 0;
-   while (gCode[i] != '\0') {
-      AddCharToLine(gCode[i]);
+   while (Value[i] != '\0') {
+      line[i] = Value[i];
       i++;
    }
   	
-   AddCharToLine('\n');
+   line[i] = '\n';
+   completeLineIsAvailableToParse;
    ParseLine();
 }
 
