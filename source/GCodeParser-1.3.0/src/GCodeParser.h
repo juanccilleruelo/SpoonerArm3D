@@ -59,8 +59,8 @@ public:
    bool IsABlockToIgnore;
    bool IsABeginOrEndBlock;
 
-   void Initialize();
    GCodeParser();
+   void Initialize();
    void ParseLine(char* gCode);
    void RemoveCommentSeparators();
 

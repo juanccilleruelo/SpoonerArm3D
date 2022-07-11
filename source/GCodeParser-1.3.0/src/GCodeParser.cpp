@@ -77,9 +77,8 @@ void GCodeParser::ParseLine(char* Value)
    ParseLine();
 }
 
-
 /// <summary>
-/// Parses the line removing spaces, tabs and comments. Comments are shifted to the end of the line buffer.
+/// Parses the line removing spaces, tabs and comments. Comments are shifted to the end of the line.
 /// </summary>
 void GCodeParser::ParseLine()
 {
@@ -87,7 +86,7 @@ void GCodeParser::ParseLine()
    line[lineLength + 1] = '\0'; // Adds a finisher char
 
    int  i                        =     0;
-   bool openParentheseFound      = false;
+   bool openParenthesisFound     = false;
    bool semicolonFound           = false;
    int  correctCommentsPointerBy =     0;
 	char c = '\0';
@@ -97,13 +96,13 @@ void GCodeParser::ParseLine()
 
       // Look for start of comment.
       if (!semicolonFound && c == '(')
-         openParentheseFound = true; // Open parenthese... start of comment.
+         openParenthesisFound = true; // Open parenthesis... start of comment.
 
-      if (!openParentheseFound && c == ';')
+      if (!openParenthesisFound && c == ';')
          semicolonFound = true; // Semicolon... start of comment to end of line.
 
       // If we are inside a comment, we need to move it to the end of the buffer in order to seperate it.
-      if (openParentheseFound || semicolonFound) {
+      if (openParenthesisFound || semicolonFound) {
          // Shift line left.
          for (int x = i; x < lineLength; x++) {
             line[x] = line[x + 1];
@@ -128,11 +127,10 @@ void GCodeParser::ParseLine()
       }
 
       // Look for end of comment.
-      if (!semicolonFound && c == ')')
-      {
-         openParentheseFound = false;
+      if (!semicolonFound && c == ')') {
+         openParenthesisFound = false;
 
-         // Is this the end of the comment? Scan forward for second closing parenthese, but no opening parenthese first.
+         // Is this the end of the comment? Scan forward for second closing parenthesis, but no opening parenthesis first.
          int scanAheadPointer = i;
 
          while (line[scanAheadPointer] != '\0') {
@@ -140,7 +138,7 @@ void GCodeParser::ParseLine()
                break;
 
             if (line[scanAheadPointer] == ')') {
-               openParentheseFound = true;
+               openParenthesisFound = true;
                break;
             }
 
@@ -157,26 +155,26 @@ void GCodeParser::ParseLine()
    // '(debug,..)' or '(print,..)'. If there are several comments on a line, only the last comment
    // will be interpreted according to these rules. For this reason there is a pointer to the last comment.
    i = 0;
-   openParentheseFound = false;
+   openParenthesisFound = false;
 
    while (comments[i] != '\0') {
    char c = comments[i];
 
-   // Open parenthese... start of comment.
+   // Open parenthesis... start of comment.
    if (c == '(') {
       lastComment = comments + i;
-         openParentheseFound = true; 
+         openParenthesisFound = true; 
       }
 
       // Semicolon... start of comment to end of line, the last comment.
-      if (!openParentheseFound && c == ';') {
+      if (!openParenthesisFound && c == ';') {
          lastComment = comments + i;
          break;
       }
 
       // Look for end of comment.
       if (c == ')') {   
-         openParentheseFound = false;
+         openParenthesisFound = false;
 
          // Is this the end of the comment? Scan forward for second closing parenthese, but no opening parenthese first.
          int scanAheadPointer = i + 1;
@@ -186,7 +184,7 @@ void GCodeParser::ParseLine()
                break;
 
             if (comments[scanAheadPointer] == ')') {
-               openParentheseFound = true;
+               openParenthesisFound = true;
                break;
             }
 
