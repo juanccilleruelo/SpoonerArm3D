@@ -42,7 +42,7 @@ void setup() {
 
    delay(10);
 
-   TestGCodeParser();
+    TestGCodeParser();
 
 
    //PWMDriver.setPWM(JOINT_1, 0, SERVOMIN + (SERVOMAX - SERVOMIN)/2);
@@ -55,7 +55,7 @@ void setup() {
 void loop() {
    //getSerialString();   
 
-   
+  
 
   //The function setPWM(n_servo, on, off) is used to set the pulse width of a PWM output.
   //  n_servo :the number of servo or output to be configured (0 to 15)
@@ -86,20 +86,27 @@ void loop() {
 }
 
 
-void TestGCodeParser() {
-   char StrBuffer[100];
-   int i = 0;  
+void TestGCodeParser() {  
+   Serial.println("TestGCodeParser");
+/*
+  To embed a comment in a line, use parentheses; 
+  To add a comment to the end of a line, use a semicolon.
+  NOTE: The semicolon is not treated as the start of a comment when it’s enclosed in parentheses.
 
-   //ensure the buffer is empty.
-   //memset(StrBuffer, 0, sizeof(StrBuffer));
-   StrBuffer[0] = 0;
-   strcpy(StrBuffer, '%\0');
-   //ExecuteCommand(StrBuffer);
+  Comments can appear between words: S100 (set speed) F200 (feed) 
+
+  After the ; that means end of a block, the rest is consdered a comment.
+
+  If a line starts with / or ; means that his entire content will be ignored.
+
+  The lines with only a comment between parentheses denote a message to be shown to the operator
+ */  
    //Start program
    ExecuteCommand("%"                              ); // Start of program.
    ExecuteCommand("00001 (PROJECT1)               "); // Program number (Program Name).
+   ExecuteCommand("/line ignored                  "); // Program number (Program Name).
    ExecuteCommand("(T1 0.25 END MILL)             "); // Tool description for operator.
-   ExecuteCommand("N1 G17 G20 G40 G49 G80 G90     "); // Safety block to ensure machine is in safe mode.
+   ExecuteCommand("        N1 G17 G20 G40 G49 G80 G90     "); // Safety block to ensure machine is in safe mode.
    //Change Tool
    ExecuteCommand("N2 T1 M6                       "); // Load Tool #1.
    ExecuteCommand("N3 S9200 M3                    "); // Spindle Speed 9200 RPM, On CW.
@@ -138,6 +145,7 @@ void TestGCodeParser() {
    ExecuteCommand("N29 M9                         "); // Coolant Off.
    ExecuteCommand("N30 G91 G28 ZO                 "); // Return to machine Home position in Z.
    ExecuteCommand("N31 G91 G28 XO YO              "); // Return to machine Home position in XY.
+   ExecuteCommand("   /Another line ignored       ");
    ExecuteCommand("N32 G90                        "); // Reset to absolute positioning mode (for safety).
    ExecuteCommand("N33 M30                        "); // Reset program to beginning.
    ExecuteCommand("%                              "); // End Progra
@@ -167,9 +175,7 @@ void getSerialString() {
       Serial.println(StrBuffer);
 
       ExecuteCommand(StrBuffer);
-   };
-
-   
+   };  
 }
  /* -------------------------------------------------
   |              getSerialCommands()                |
@@ -201,8 +207,10 @@ bool ExecuteCommand(char Command[100]){
   GCode.ParseLine(Command);
 
   // Code to process the line of G-Code here…
-  Serial.print("Command Line: ");
-  Serial.println(GCode.line);
+  Serial.println("Command Line\t\tComment ");
+  Serial.print(GCode.line);
+  Serial.print("\t\t\t");
+  Serial.println(GCode.comments);
 
   // GCode.RemoveCommentSeparators();
 

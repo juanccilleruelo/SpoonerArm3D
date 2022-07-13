@@ -22,10 +22,21 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef GCodeParser_h
-#define GCodeParser_h
+#ifndef GCodeParser_h 
+   #define GCodeParser_h
+
+#include <string.h>
 
 const int MAX_LINE_SIZE = 256; // Maximun GCode line size.
+
+struct TResultParsed {  
+   bool   IsComment;     
+   char* Comment;
+   bool   IsError;
+   char*  ErrorText;
+   bool   IsCommand;
+   char   Command;       
+};      
 
 /// <summary>
 /// The GCodeParser library is a lightweight G-Code parser for the Arduino using only
@@ -50,21 +61,32 @@ const int MAX_LINE_SIZE = 256; // Maximun GCode line size.
 class GCodeParser
 {
 private:
+   bool IsABlockToIgnore;
+   char* deblank(char* input);
    void ParseLine();
-
+   bool isDelimiter(char ch);
+   bool isOperator(char ch);
+   bool validIdentifier(char* str);
+   bool isKeyword(char* str);
+   bool isInteger(char* str);
+   bool isRealNumber(char* str);
+   char* subString(char* str, int left, int right);
+   void  parse(char* str);
 public:
    char line[MAX_LINE_SIZE + 2];
    char* comments;
    char* lastComment;
-   bool IsABlockToIgnore;
-   bool IsABeginOrEndBlock;
+   
+   bool  IsABeginOrEndBlock;
+
+   TResultParsed resultParsed;  
 
    GCodeParser();
    void Initialize();
    void ParseLine(char* gCode);
    void RemoveCommentSeparators();
 
-   int FindWord(char letter);
+   int  FindWord(char letter);
    bool HasWord(char letter);
    bool IsWord(char letter);
    bool NoWords();

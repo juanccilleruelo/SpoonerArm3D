@@ -34,6 +34,11 @@ Special character codes:
 #include <stdlib.h>
 #include <string.h>
 
+#include <stdbool.h>
+#include <stdio.h>
+
+
+
  /// <summary>
  /// Initializizes class.
  /// </summary>
@@ -73,12 +78,212 @@ void GCodeParser::ParseLine(char* Value)
       i++;
    }
   	
-   line[i] = '\n';
+   ///line[i] = '\n';
    ParseLine();
 }
 
+/*
+   Parser functions 
+*/
+
+// Returns 'true' if the character is a DELIMITER.
+bool GCodeParser::isDelimiter(char ch)
+{
+    if (ch == ' ' || ch == '+' || ch == '-' || ch == '*' ||
+        ch == '/' || ch == ',' || ch == ';' || ch == '>' ||
+        ch == '<' || ch == '=' || ch == '(' || ch == ')' ||
+        ch == '[' || ch == ']' || ch == '{' || ch == '}')
+        return (true);
+    return (false);
+}
+ 
+// Returns 'true' if the character is an OPERATOR.
+bool GCodeParser::isOperator(char ch)
+{
+    if (ch == '+' || ch == '-' || ch == '*' ||
+        ch == '/' || ch == '>' || ch == '<' ||
+        ch == '=')
+        return (true);
+    return (false);
+}
+ 
+// Returns 'true' if the string is a VALID IDENTIFIER.
+bool GCodeParser::validIdentifier(char* str)
+{
+    if (str[0] == '0' || str[0] == '1' || str[0] == '2' ||
+        str[0] == '3' || str[0] == '4' || str[0] == '5' ||
+        str[0] == '6' || str[0] == '7' || str[0] == '8' ||
+        str[0] == '9' || isDelimiter(str[0]) == true)
+        return (false);
+    return (true);
+}
+ 
+// Returns 'true' if the string is a KEYWORD.
+bool GCodeParser::isKeyword(char* str)
+{
+    if (!strcmp(str, "if"      ) || 
+        !strcmp(str, "else"    ) ||
+        !strcmp(str, "while"   ) || 
+        !strcmp(str, "do"      ) ||
+        !strcmp(str, "break"   ) ||
+        !strcmp(str, "continue") || 
+        !strcmp(str, "int"     ) || 
+        !strcmp(str, "double"  ) || 
+        !strcmp(str, "float"   ) || 
+        !strcmp(str, "return"  ) || 
+        !strcmp(str, "char"    ) || 
+        !strcmp(str, "case"    ) || 
+        !strcmp(str, "char"    ) || 
+        !strcmp(str, "sizeof"  ) || 
+        !strcmp(str, "long"    ) || 
+        !strcmp(str, "short"   ) || 
+        !strcmp(str, "typedef" ) || 
+        !strcmp(str, "switch"  ) || 
+        !strcmp(str, "unsigned") || 
+        !strcmp(str, "void"    ) || 
+        !strcmp(str, "static"  ) || 
+        !strcmp(str, "struct"  ) || 
+        !strcmp(str, "goto"    ))
+        return (true);
+    return (false);
+}
+ 
+// Returns 'true' if the string is an INTEGER.
+bool GCodeParser::isInteger(char* str)
+{
+    int i, len = strlen(str);
+ 
+    if (len == 0)
+        return (false);
+    for (i = 0; i < len; i++) {
+        if (str[i] != '0' && 
+            str[i] != '1' && 
+            str[i] != '2' && 
+            str[i] != '3' && 
+            str[i] != '4' && 
+            str[i] != '5' && 
+            str[i] != '6' && 
+            str[i] != '7' && 
+            str[i] != '8' && 
+            str[i] != '9' || (str[i] == '-' && i > 0))
+            return (false);
+    }
+    return (true);
+}
+ 
+// Returns 'true' if the string is a REAL NUMBER.
+bool GCodeParser::isRealNumber(char* str)
+{
+    int i, len = strlen(str);
+    bool hasDecimal = false;
+ 
+    if (len == 0)
+        return (false);
+    for (i = 0; i < len; i++) {
+        if (str[i] != '0' && 
+            str[i] != '1' && 
+            str[i] != '2' && 
+            str[i] != '3' && 
+            str[i] != '4' && 
+            str[i] != '5' && 
+            str[i] != '6' && 
+            str[i] != '7' && 
+            str[i] != '8' && 
+            str[i] != '9' && 
+            str[i] != '.' || (str[i] == '-' && i > 0))
+            return (false);
+        if (str[i] == '.')
+            hasDecimal = true;
+    }
+    return (hasDecimal);
+}
+ 
+// Extracts the SUBSTRING.
+char* GCodeParser::subString(char* str, int left, int right)
+{
+    int i;
+    char* subStr = (char*)malloc(
+                  sizeof(char) * (right - left + 2));
+ 
+    for (i = left; i <= right; i++)
+        subStr[i - left] = str[i];
+    subStr[right - left + 1] = '\0';
+    return (subStr);
+}
+ 
+// Parsing the input STRING.
+void GCodeParser::parse(char* str)
+{
+   int left  = 0; 
+   int right = 0;
+   int len   = strlen(str);
+ 
+   while (right <= len && left <= right) {
+       if (isDelimiter(str[right]) == false)
+           right++;
+
+       if (isDelimiter(str[right]) == true && left == right) {
+          if (isOperator(str[right]) == true)
+              printf("'%c' IS AN OPERATOR\n", str[right]);
+
+          right++;
+          left = right;
+       } 
+       else if (isDelimiter(str[right]) == true && left != right || (right == len && left != right)) {
+          char* subStr = subString(str, left, right - 1);
+
+          if (isKeyword      (subStr) == true) printf("'%s' IS A KEYWORD\n"    , subStr); else 
+          if (isInteger      (subStr) == true) printf("'%s' IS AN INTEGER\n"   , subStr); else 
+          if (isRealNumber   (subStr) == true) printf("'%s' IS A REAL NUMBER\n", subStr); else 
+          if (validIdentifier(subStr) == true && isDelimiter(str[right  - 1]) == false) printf("'%s' IS A VALID IDENTIFIER\n"    , subStr); else
+          if (validIdentifier(subStr) == false && isDelimiter(str[right - 1]) == false) printf("'%s' IS NOT A VALID IDENTIFIER\n", subStr);
+          left = right;
+       }
+   }
+   return;
+}
+
+// DRIVER FUNCTION
+/*int main()
+{
+     // maximum length of string is 100 here
+    char str[100] = "int a = b + 1c; ";
+ 
+    parse(str); // calling the parse function
+ 
+    return (0);
+}*/
+
+
+char* GCodeParser::deblank(char* input)                                         
+{
+    int i;
+    int j;
+    char *output = input;
+    for (i = 0, j = 0; i < strlen(input); i++, j++) {          
+        if (input[i] != ' ')                           
+            output[j] = input[i];                     
+        else
+            j--;                                     
+    }
+    output[j] = '\0';
+    return output;
+}
+
+
 /// <summary>
-/// Parses the line removing spaces, tabs and comments. Comments are shifted to the end of the line.
+/// Parses the line removing comments. 
+/// There are four types of comments
+/// First type:
+/// At any point, any text between partentheses. 
+///    This comments will be removed before parse the block.
+///    Comments can appear between words: S100 (set speed) F200 (feed) 
+/// At the start of the block when this begins with ; (semicolon) or / (slash)
+///    This second and third type are going be removed too, and the line is returned as command "IgnoreIt".
+/// At the end of the line, after the ; (semicolon) that means end fo the block.
+///    This comments will be deleted and the block parsed as conveniant.
+/// When a line begins and ends with the same parentheses, the text inside it are considered an operator message
+///    This comments is returned as line processed and a instruction tho show this message to the operator
 /// </summary>
 void GCodeParser::ParseLine()
 {
@@ -90,16 +295,32 @@ void GCodeParser::ParseLine()
    bool semicolonFound           = false;
    int  correctCommentsPointerBy =     0;
 	char c = '\0';
+   bool LetterFound              = false;
+
+   //Remove initial spaces
+   //line = deblank(line);
+
+   // Remove spaces and tabs at the begining.
+   while (line[0] == ' ' || line[0] == '\t') {
+      int CurrentChar = 0;
+
+      while (line[CurrentChar] != '\0') {
+         line[CurrentChar] = line[CurrentChar + 1];
+         CurrentChar++;
+      }
+   }; 
 
    while (line[i] != '\0') { //Traces all the characters in the line
       c = line[i]; //current character pointed
 
       // Look for start of comment.
-      if (!semicolonFound && c == '(')
+      if (!semicolonFound && c == '(') {
          openParenthesisFound = true; // Open parenthesis... start of comment.
+      }   
 
-      if (!openParenthesisFound && c == ';')
+      if (!openParenthesisFound && c == ';') {
          semicolonFound = true; // Semicolon... start of comment to end of line.
+      }
 
       // If we are inside a comment, we need to move it to the end of the buffer in order to seperate it.
       if (openParenthesisFound || semicolonFound) {
@@ -109,7 +330,9 @@ void GCodeParser::ParseLine()
          }
          line[lineLength] = c;
       }
-      else {
+      else
+            i++;
+      /*else {
          // Spaces and tabs are allowed anywhere on a line of code and do not change the meaning of 
          // the line, except inside comments. Remove spaces and tabs except in comments. 
          if (c == ' ' || c == '\t') {
@@ -124,7 +347,7 @@ void GCodeParser::ParseLine()
          }
          else
             i++;
-      }
+      }*/
 
       // Look for end of comment.
       if (!semicolonFound && c == ')') {
@@ -176,7 +399,7 @@ void GCodeParser::ParseLine()
       if (c == ')') {   
          openParenthesisFound = false;
 
-         // Is this the end of the comment? Scan forward for second closing parenthese, but no opening parenthese first.
+         // Is this the end of the comment? Scan forward for second closing parenthesis, but no opening parenthesis first.
          int scanAheadPointer = i + 1;
 
          while (comments[scanAheadPointer] != '\0') {
@@ -364,7 +587,7 @@ bool GCodeParser::IsWord(char letter)
 {	
    int i = 0;
    while (wordLetter[i] != '\0') {
-      if (letter == wordLetter[i]) {
+      if (wordLetter[i] == letter) {
          return true;
       }
       i++;
@@ -389,10 +612,8 @@ bool GCodeParser::NoWords()
       if (HasWord(wordLetter[i])) {
          return false;
       }
-
       i++;
    }
-
    return true;
 }
 
