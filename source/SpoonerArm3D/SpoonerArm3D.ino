@@ -148,7 +148,6 @@ void TestGCodeParser() {
   //  ExecuteCommand("N32 G90                        "); // Reset to absolute positioning mode (for safety).
   //  ExecuteCommand("N33 M30                        "); // Reset program to beginning.
   //  ExecuteCommand("%                              "); // End Program
-   
 }
 
 void getSerialString() {

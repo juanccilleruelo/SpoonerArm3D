@@ -399,7 +399,7 @@ void GCodeParser::ProcessComments()
       RemoveCommentSeparators();
       int x = 0;
       for (x = 0; Comment[x] != '\0'; x++) {
-          line[x] = Comment[x];
+         line[x] = Comment[x];
       } 
       line[x+1] = '\0';
    }
@@ -407,7 +407,7 @@ void GCodeParser::ProcessComments()
    // The optional block deleted character the slash '/' when placed first on a line can be used
    // by some user interfaces to skip lines of code when needed.
    // The '%' is used to demarcate the beginning (first line) and end (last line) of the program. It is optional if the file has an 'M2' or 'M30'. 
-   AvoidBlock = (strlen(line) == 0) || (line[0] == '/') || (line[0] == ';') || (line[0] == '%');
+   AvoidBlock = (strlen(line) == 0) || (line[0] == '/') || (line[0] == ';') || (line[0] == '%') || (!IsWord(line[0]));
 }
 
 /// <summary>
@@ -452,7 +452,6 @@ void GCodeParser::RemoveCommentSeparators()
                openParentheseFound = true;
                break;
             }
-
             x++;
          }
 
@@ -483,15 +482,6 @@ void GCodeParser::RemoveCommentSeparators()
       }
    };
 
-   //while (Comment[0] == ' ') {
-   //   // Shift pointer right
-   //   Comment[0] = Comment[1];
-   //}
-
-   //while (lastComment[0] == ' ') {
-   //   // Shift pointer right  
-   //   lastComment = lastComment + 1;
-   //}
 }
 
 /// <summary>
