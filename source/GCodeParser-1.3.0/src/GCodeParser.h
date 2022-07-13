@@ -61,9 +61,7 @@ struct TResultParsed {
 class GCodeParser
 {
 private:
-   bool IsABlockToIgnore;
-   char* deblank(char* input);
-   void ParseLine();
+   void ProcessComments();
    bool isDelimiter(char ch);
    bool isOperator(char ch);
    bool validIdentifier(char* str);
@@ -73,11 +71,10 @@ private:
    char* subString(char* str, int left, int right);
    void  parse(char* str);
 public:
+   bool AvoidBlock;
+   bool OperatorMessage;
    char line[MAX_LINE_SIZE + 2];
-   char* comments;
-   char* lastComment;
-   
-   bool  IsABeginOrEndBlock;
+   char Comment[MAX_LINE_SIZE + 2];
 
    TResultParsed resultParsed;  
 

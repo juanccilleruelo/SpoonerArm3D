@@ -44,11 +44,9 @@ Special character codes:
  /// </summary>
 void GCodeParser::Initialize()
 {
-   line[0]            = '\0';
-   comments           = line;
-   lastComment        = comments;
-   IsABlockToIgnore   = false;
-   IsABeginOrEndBlock = false;
+   line[0]         = '\0';
+   AvoidBlock      = false;
+   OperatorMessage = false;
 }
 
 /// <summary>
@@ -66,7 +64,7 @@ GCodeParser::GCodeParser()
 }
 
 /// <summary>
-/// Parses the line passed removing spaces, tabs and comments. Comments are shifted to the end of the line buffer.
+/// Parses the line passed removing spaces, tabs and comments. Comments are moved to a new variable.
 /// </summary>
 void GCodeParser::ParseLine(char* Value)
 {
@@ -78,8 +76,8 @@ void GCodeParser::ParseLine(char* Value)
       i++;
    }
   	
-   ///line[i] = '\n';
-   ParseLine();
+   line[i] = '\0';
+   ProcessComments();
 }
 
 /*
@@ -254,25 +252,8 @@ void GCodeParser::parse(char* str)
     return (0);
 }*/
 
-
-char* GCodeParser::deblank(char* input)                                         
-{
-    int i;
-    int j;
-    char *output = input;
-    for (i = 0, j = 0; i < strlen(input); i++, j++) {          
-        if (input[i] != ' ')                           
-            output[j] = input[i];                     
-        else
-            j--;                                     
-    }
-    output[j] = '\0';
-    return output;
-}
-
-
 /// <summary>
-/// Parses the line removing comments. 
+/// Remove or processes the comments. 
 /// There are four types of comments
 /// First type:
 /// At any point, any text between partentheses. 
@@ -285,99 +266,94 @@ char* GCodeParser::deblank(char* input)
 /// When a line begins and ends with the same parentheses, the text inside it are considered an operator message
 ///    This comments is returned as line processed and a instruction tho show this message to the operator
 /// </summary>
-void GCodeParser::ParseLine()
+void GCodeParser::ProcessComments()
 {
-   int lineLength = strlen(line);
-   line[lineLength + 1] = '\0'; // Adds a finisher char
+   char Comments[MAX_LINE_SIZE + 2];
+   Comment[0] = '\0';
+   int CommentIndex = 0;
 
-   int  i                        =     0;
    bool openParenthesisFound     = false;
    bool semicolonFound           = false;
-   int  correctCommentsPointerBy =     0;
 	char c = '\0';
-   bool LetterFound              = false;
 
-   //Remove initial spaces
-   //line = deblank(line);
+   // Remove spaces and tabs at the end.
+   for (int x = strlen(line); line[x-1] == ' ' || line[x-1] == '\t'; x--) {
+      line[x-1] = '\0';
+   }
 
    // Remove spaces and tabs at the begining.
    while (line[0] == ' ' || line[0] == '\t') {
-      int CurrentChar = 0;
-
-      while (line[CurrentChar] != '\0') {
-         line[CurrentChar] = line[CurrentChar + 1];
-         CurrentChar++;
+      int x = 0;
+      while (line[x] != '\0') {
+         line[x] = line[x + 1];
+         x++;
       }
-   }; 
+   };
 
-   while (line[i] != '\0') { //Traces all the characters in the line
+   int LineLength = strlen(line);
+
+   //Traces all the characters in the line
+   int i = 0;
+   while (line[i] != '\0') { 
       c = line[i]; //current character pointed
 
       // Look for start of comment.
       if (!semicolonFound && c == '(') {
          openParenthesisFound = true; // Open parenthesis... start of comment.
-      }   
+      }
 
       if (!openParenthesisFound && c == ';') {
          semicolonFound = true; // Semicolon... start of comment to end of line.
       }
-
-      // If we are inside a comment, we need to move it to the end of the buffer in order to seperate it.
+   
+      /*===============================================================================================*/
+  
+      // If we are inside a comment, we need to move it to the variable Comment to seperate it.
       if (openParenthesisFound || semicolonFound) {
          // Shift line left.
-         for (int x = i; x < lineLength; x++) {
-            line[x] = line[x + 1];
+         for (int x = i; x <= LineLength; x++) {
+            line[x] = line[x+1];
          }
-         line[lineLength] = c;
+         //Translate character to Comment
+         Comment[CommentIndex] = c;
+         Comment[CommentIndex+1] = '\0';
+         CommentIndex++;
+
       }
       else
-            i++;
-      /*else {
-         // Spaces and tabs are allowed anywhere on a line of code and do not change the meaning of 
-         // the line, except inside comments. Remove spaces and tabs except in comments. 
-         if (c == ' ' || c == '\t') {
-            int removeCharacterPointer = i;
+         i++;
 
-            while (line[removeCharacterPointer] != '\0') {
-               line[removeCharacterPointer] = line[removeCharacterPointer + 1];
-               removeCharacterPointer++;
-            }
-
-            correctCommentsPointerBy++;
-         }
-         else
-            i++;
-      }*/
+      /*===============================================================================================*/
 
       // Look for end of comment.
       if (!semicolonFound && c == ')') {
          openParenthesisFound = false;
 
          // Is this the end of the comment? Scan forward for second closing parenthesis, but no opening parenthesis first.
-         int scanAheadPointer = i;
-
-         while (line[scanAheadPointer] != '\0') {
-            if (line[scanAheadPointer] == '(')
+         int x = i;
+         while (line[x] != '\0') {
+            if (line[x] == '(')
                break;
-
-            if (line[scanAheadPointer] == ')') {
+            if (line[x] == ')') {
                openParenthesisFound = true;
                break;
             }
-
-            scanAheadPointer++;
+            x++;
          }
       }
    }
 
    // Set pointer to comments.
-   comments    = line + strlen(line) + correctCommentsPointerBy + 1;
-   lastComment = comments;
+   //comments = line + strlen(line) + 1;
+   //if (line[0] == ';') comments = 0;
+   //if (line[0] == '/') comments = 0;
+   //if (line[0] == '%') comments = 0;
+   //lastComment = comments;
 
    // There are several 'active' comments which look like comments but cause some action, like
    // '(debug,..)' or '(print,..)'. If there are several comments on a line, only the last comment
    // will be interpreted according to these rules. For this reason there is a pointer to the last comment.
-   i = 0;
+   /*i = 0;
    openParenthesisFound = false;
 
    while (comments[i] != '\0') {
@@ -415,14 +391,23 @@ void GCodeParser::ParseLine()
          }
       }
       i++;
+   }*/
+
+   //Check if the comment is an operator message; 
+   if ((strlen(line) == 0) && (Comment[0] == '(')){
+      OperatorMessage = true;
+      RemoveCommentSeparators();
+      int x = 0;
+      for (x = 0; Comment[x] != '\0'; x++) {
+          line[x] = Comment[x];
+      } 
+      line[x+1] = '\0';
    }
 
    // The optional block deleted character the slash '/' when placed first on a line can be used
    // by some user interfaces to skip lines of code when needed.
-   IsABlockToIgnore = (line[0] == '/');
-
    // The '%' is used to demarcate the beginning (first line) and end (last line) of the program. It is optional if the file has an 'M2' or 'M30'. 
-   IsABeginOrEndBlock = (line[0] == '%');
+   AvoidBlock = (strlen(line) == 0) || (line[0] == '/') || (line[0] == ';') || (line[0] == '%');
 }
 
 /// <summary>
@@ -431,24 +416,24 @@ void GCodeParser::ParseLine()
 /// <remark>Once removed they cannot be replaced.</remark>
 void GCodeParser::RemoveCommentSeparators()
 {
-   int commentsLength = strlen(comments);
+   int commentsLength = strlen(Comment);
 
    int  i                        = 0;
    bool openParentheseFound      = false;
    int  correctCommentsPointerBy = 0;
    char c                        = '\0';
 
-   while (comments[i] != '\0') {
-      c = comments[i];
+   while (Comment[i] != '\0') {
+      c = Comment[i];
 
       // Look for start of comment.
       if (c == '(') {
-         comments[i] = ' ';
+         Comment[i] = ' ';
          openParentheseFound = true; // Open parenthese... start of comment.
       }
 
       if (!openParentheseFound && c == ';') {
-         comments[i] = ' ';
+         Comment[i] = ' ';
          break;
       }
 
@@ -457,24 +442,24 @@ void GCodeParser::RemoveCommentSeparators()
          openParentheseFound = false;
 
          // Is this the end of the comment? Scan forward for second closing parenthese, but no opening parenthese first.
-         int scanAheadPointer = i + 1;
+         int x = i + 1;
 
-         while (comments[scanAheadPointer] != '\0') {
-            if (comments[scanAheadPointer] == '(')
+         while (Comment[x] != '\0') {
+            if (Comment[x] == '(')
                break;
 
-            if (comments[scanAheadPointer] == ')') {
+            if (Comment[x] == ')') {
                openParentheseFound = true;
                break;
             }
 
-            scanAheadPointer++;
+            x++;
          }
 
          if (!openParentheseFound) {
             // Shift line left.
             for (int x = i; x < commentsLength; x++) {
-               comments[x] = comments[x + 1];
+               Comment[x] = Comment[x + 1];
             }
          }
          else
@@ -484,15 +469,29 @@ void GCodeParser::RemoveCommentSeparators()
          i++;
    }
 
-   while (comments[0] == ' ') {
-      // Shift pointer right
-      comments = comments + 1;
+   // Remove spaces and tabs at the end.
+   for (int x = strlen(Comment); Comment[x-1] == ' ' || Comment[x-1] == '\t'; x--) {
+      Comment[x-1] = '\0';
    }
 
-   while (lastComment[0] == ' ') {
-      // Shift pointer right  
-      lastComment = lastComment + 1;
-   }
+   // Remove spaces and tabs at the begining.
+   while (Comment[0] == ' ' || Comment[0] == '\t') {
+      int x = 0;
+      while (Comment[x] != '\0') {
+         Comment[x] = Comment[x + 1];
+         x++;
+      }
+   };
+
+   //while (Comment[0] == ' ') {
+   //   // Shift pointer right
+   //   Comment[0] = Comment[1];
+   //}
+
+   //while (lastComment[0] == ' ') {
+   //   // Shift pointer right  
+   //   lastComment = lastComment + 1;
+   //}
 }
 
 /// <summary>
@@ -603,7 +602,7 @@ bool GCodeParser::IsWord(char letter)
 /// <remarks>Words are not validated.<remark>
 bool GCodeParser::NoWords()
 {
-   if (line[0] == '\0' || IsABlockToIgnore || IsABeginOrEndBlock) {
+   if (line[0] == '\0' || AvoidBlock) {
       return true;
    }
 
