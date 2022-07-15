@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2021 Terence Golla
+Copyright (c) 2022 Juan Carlos Cilelruelo Gonzalo
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -29,13 +29,68 @@ SOFTWARE.
 
 const int MAX_LINE_SIZE = 256; // Maximun GCode line size.
 
-struct TResultParsed {  
-   bool   IsComment;     
+typedef struct TGParameter {
+  char Param; // The Letter of the parameter
+  char* Value; // The Value of the parameter
+}; 
+
+typedef struct TResultParsed {  
+   bool  IsComment;     
    char* Comment;
-   bool   IsError;
-   char*  ErrorText;
-   bool   IsCommand;
-   char   Command;       
+   /*************/
+   bool  IsCommand;
+   char  Type;       
+   int   Number;
+   struct TGParameter* Parameters;
+   /*************/
+   bool   Param_X; // A coordinate on the X axis
+   double Value_X; 
+   /*************/
+   bool   Param_Y; // A coordinate on the Y axis 
+   double Value_Y; 
+   /*************/
+   bool   Param_Z; // A coordinate on the Z axis 
+   double Value_Z; 
+   /*************/
+   bool   Param_B; // Bed temperature (otherwise 60°C) to use for the test print.
+   double Value_B;
+   /*************/
+   bool   Param_C; // Continue with the closest point (otherwise, don’t)
+   double Value_C;
+   /*************/
+   bool   Param_E; // The amount to extrude between the start point and end point
+   double Value_E; 
+   /*************/
+   bool   Param_F; // The maximum rate of the move between the start and end point
+   double Value_F; 
+   /*************/
+   bool   Param_H; // Hot end temperature (otherwise 205°C) to use for the test print.
+   double Value_H;
+   /*************/
+   bool   Param_I; // An offset from the current X position to use as the arc center
+   double Value_I; 
+   /*************/
+   bool   Param_J; // An offset from the current Y position to use as the arc center
+   double Value_J; 
+   /*************/
+   bool   Param_K; // Keep heaters on when done
+   double Value_K;
+   /*************/
+   bool   Param_P; // Specify complete circles. (Requires ARC_P_CIRCLES)
+   double Value_P; 
+   /*************/
+   bool   Param_Q; // Offset from the Y end point to the second control point
+   double Value_Q; 
+   /*************/
+   bool   Param_R; // A radius from the current XY position to use as the arc center
+   double Value_R;
+   /*************/
+   bool   Param_S; // Set the Laser power for the move.
+   double Value_S; 
+   /*************/
+   bool   Param_T; // Number of triangles in the zigzag pattern
+   double Value_T;  
+
 };      
 
 /// <summary>
@@ -62,14 +117,19 @@ class GCodeParser
 {
 private:
    void ProcessComments();
+   void RemoveCommentSeparators();
+
+   char* GetToken(int &left, char* str);
+
    bool isDelimiter(char ch);
+   bool IsGCodeCommand(char* str);
+   int  GetGCodeNumber(char* GCommand);
    bool isOperator(char ch);
    bool validIdentifier(char* str);
    bool isKeyword(char* str);
    bool isInteger(char* str);
    bool isRealNumber(char* str);
    char* subString(char* str, int left, int right);
-   void  parse(char* str);
 public:
    bool AvoidBlock;
    bool OperatorMessage;
@@ -81,7 +141,6 @@ public:
    GCodeParser();
    void Initialize();
    void ParseLine(char* gCode);
-   void RemoveCommentSeparators();
 
    int  FindWord(char letter);
    bool HasWord(char letter);

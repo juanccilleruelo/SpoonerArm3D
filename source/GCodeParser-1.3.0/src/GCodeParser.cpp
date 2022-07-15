@@ -31,11 +31,14 @@ Special character codes:
 */
 
 #include "GCodeParser.h"
+#include <Arduino.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <stdbool.h>
 #include <stdio.h>
+
+
 
 
 
@@ -68,6 +71,11 @@ GCodeParser::GCodeParser()
 /// </summary>
 void GCodeParser::ParseLine(char* Value)
 {
+   char* token;
+   //Serial.println("Parsing Line");
+
+   int CurPosition = 0;
+
    Initialize();
 
    int i = 0;
@@ -77,34 +85,72 @@ void GCodeParser::ParseLine(char* Value)
    }
   	
    line[i] = '\0';
+   
    ProcessComments();
+   if (!AvoidBlock && !OperatorMessage) {
+      while(CurPosition < strlen(line)) {
+         token = GetToken(CurPosition, line);
+         if(IsGCodeCommand(token)) {
+            GetGCodeNumber(token);
+            Serial.print("Token : " ); Serial.println(token);
+
+         }
+         
+      }   
+   }   
 }
 
 /*
    Parser functions 
 */
 
+// Parsing the input STRING.
+char* GCodeParser::GetToken(int &left, char* str)
+{
+   int right = left;
+   int end   = strlen(str);
+
+   while(isDelimiter(str[left]) && left < end) {
+      left++;
+   }
+   right = left;
+
+   while (!isDelimiter(str[right]) && right < end) {  
+      right++;
+   }
+
+   char* token = subString(str, left, right - 1);
+   left = right; 
+   return token;
+}
+
+// Returns 'true' if the string is a Valid GCode command.
+bool GCodeParser::IsGCodeCommand(char* str)
+{
+   //Only Malin valid GCodes. 
+   return (str[0] == 'G' || str[0] == 'M' || str[0] == 'T');
+}
+
+int GCodeParser::GetGCodeNumber(char* GCommand)
+{
+ 
+
+}   
+
 // Returns 'true' if the character is a DELIMITER.
 bool GCodeParser::isDelimiter(char ch)
 {
-    if (ch == ' ' || ch == '+' || ch == '-' || ch == '*' ||
-        ch == '/' || ch == ',' || ch == ';' || ch == '>' ||
-        ch == '<' || ch == '=' || ch == '(' || ch == ')' ||
-        ch == '[' || ch == ']' || ch == '{' || ch == '}')
-        return (true);
-    return (false);
+    return (ch == ' ' || ch == '\t');
 }
  
 // Returns 'true' if the character is an OPERATOR.
 bool GCodeParser::isOperator(char ch)
 {
-    if (ch == '+' || ch == '-' || ch == '*' ||
-        ch == '/' || ch == '>' || ch == '<' ||
-        ch == '=')
-        return (true);
-    return (false);
+    return (ch == '+' || ch == '-' || ch == '*' ||
+            ch == '/' || ch == '>' || ch == '<' ||
+            ch == '=');
 }
- 
+
 // Returns 'true' if the string is a VALID IDENTIFIER.
 bool GCodeParser::validIdentifier(char* str)
 {
@@ -118,34 +164,247 @@ bool GCodeParser::validIdentifier(char* str)
  
 // Returns 'true' if the string is a KEYWORD.
 bool GCodeParser::isKeyword(char* str)
-{
-    if (!strcmp(str, "if"      ) || 
-        !strcmp(str, "else"    ) ||
-        !strcmp(str, "while"   ) || 
-        !strcmp(str, "do"      ) ||
-        !strcmp(str, "break"   ) ||
-        !strcmp(str, "continue") || 
-        !strcmp(str, "int"     ) || 
-        !strcmp(str, "double"  ) || 
-        !strcmp(str, "float"   ) || 
-        !strcmp(str, "return"  ) || 
-        !strcmp(str, "char"    ) || 
-        !strcmp(str, "case"    ) || 
-        !strcmp(str, "char"    ) || 
-        !strcmp(str, "sizeof"  ) || 
-        !strcmp(str, "long"    ) || 
-        !strcmp(str, "short"   ) || 
-        !strcmp(str, "typedef" ) || 
-        !strcmp(str, "switch"  ) || 
-        !strcmp(str, "unsigned") || 
-        !strcmp(str, "void"    ) || 
-        !strcmp(str, "static"  ) || 
-        !strcmp(str, "struct"  ) || 
-        !strcmp(str, "goto"    ))
+{                                    // https://marlinfw.org/docs/gcode/G000-G001.html
+    if (!strcmp(str, "G0"      ) ||  // Linear Move (without strusion)
+        !strcmp(str, "G1"      ) ||  // LInear Move (with strusion)
+        !strcmp(str, "G2"      ) ||  // Clockwise arc move.
+        !strcmp(str, "G3"      ) ||  // counter-clockwise arc move.
+        !strcmp(str, "G4"      ) ||  // Dwell  (delay)
+        !strcmp(str, "G5"      ) ||  // Beziers cubic spline 
+        !strcmp(str, "G6"      ) ||  // Direct stepper Move
+        //!strcmp(str, "G10"     ) ||  // Retract filament
+        //!strcmp(str, "G11"     ) ||  // Unretract filament 
+        //!strcmp(str, "G12"     ) ||  // Starts the nozzle cleaning process
+        !strcmp(str, "G17"     ) || // Select CNC workspace plane XY
+        !strcmp(str, "G18"     ) || // Select CNC workspace plane ZX
+        !strcmp(str, "G19"     ) || // Select CNC workspace plane YZ
+        !strcmp(str, "G20"     ) || // Set units to inches 
+        !strcmp(str, "G21"     ) || // Set units to milimiters  
+        !strcmp(str, "G26"     ) || // Test the mesh and adjust.
+        !strcmp(str, "G27"     ) || // Park the current toolhead
+        !strcmp(str, "G28"     ) || // Auto home one or more axes.
+        !strcmp(str, "G29"     ) || // Probe the bed and enable leveling compensation.
+        !strcmp(str, "G30"     ) || // Probe bed at current XY location
+        !strcmp(str, "G31"     ) || // Dock the Z probe sled.
+        !strcmp(str, "G32"     ) || // Undock the Z probe sled.
+        !strcmp(str, "G33"     ) || // Calibrate various Delta parameters
+        !strcmp(str, "G34"     ) || // Modern replacement for Průša's TMC_Z_CALIBRATION
+        !strcmp(str, "G34"     ) || // Align multiple Z steppers using a bed probe
+        !strcmp(str, "G35"     ) || // Run a procedure to tram the bed
+        !strcmp(str, "G38.2"   ) || // Probe towards (or away from) a workpiece
+        !strcmp(str, "G38.5"   ) || // 
+        !strcmp(str, "G42"     ) || // Move to a specific point in the leveling mesh
+        !strcmp(str, "G53"     ) || // Apply native workspace to the current move.
+        !strcmp(str, "G54"     ) || // Select a workspace coordinate system
+        !strcmp(str, "G59.3"   ) || //
+        !strcmp(str, "G60"     ) || // Save current position to specified slot
+        !strcmp(str, "G61"     ) || // Return to saved position of specified slot
+        !strcmp(str, "G76"     ) || // Calibrate probe temperature compensation
+        !strcmp(str, "G80"     ) || // Cancel the current motion mode
+        !strcmp(str, "G90"     ) || // Set the interpreter to absolute positions
+        !strcmp(str, "G91"     ) || // Set the interpreter to relative positions
+        !strcmp(str, "G92"     ) || // Set the current position of one or more axes.
+        !strcmp(str, "G425"    ) ) // Use a conductive object to calibrate XYZ backlash
         return (true);
     return (false);
 }
  
+/*
+M0-M1 - Stop and wait for user
+M3 - Set the spindle CW speed or laser power
+M4 - Set the spindle CCW speed or laser power
+M5 - Turn off spindle or laser
+M7-M9 - Turn mist or flood coolant on / off
+M10-M11 - Enable and disable the Cutter Vacuum or Laser Blower Motor
+M16 - Prevent G-code usage on the wrong machine
+M17 - Enable steppers
+M18, M84 - Disable steppers (same as M84).
+M20 - List the contents of the SD Card.
+M21 - Attempt to detect an SD card in the slot.
+M22 - Simulate ejection of the SD card
+M23 - Select an SD file to be executed
+M24 - Start or resume a file selected with [`M23`](/docs/gcode/M023.html)
+M25 - Pause printing from the SD card
+M26 - Set the SD read position
+M27 - Print SD progress to serial
+M28 - Start writing to a file on the SD card
+M29 - Stop writing the file, end logging.
+M30 - Delete a specified file from SD.
+M31 - Report the current print time.
+M32 - Begin an SD print from a file.
+M33 - Convert a short pathname to a long pathname.
+M34 - Set SDCard file sorting options. 
+M42 - Set an analog or digital pin to a specified state.
+M43 T - Get information about pins. 
+M43 - Get information about pins.
+M48 - Measure Z Probe repeatability.
+M73 - Set current print progress percentage for LCD.
+M75 - Start the print job timer.
+M76 - Pause the print job timer.
+M77 - Stop the print job timer.
+M78 - Print statistics about print jobs.
+M80 - Turn on the power supply
+M81 - Turn off the power supply.
+M82 - Set E to absolute positioning.
+M83 - Set E to relative positioning.
+M85 - Set the inactivity timeout.
+M92 - Set the number of steps-per-mm, per-inch, or per-degree
+M100 - Observe memory used by code
+M104 - Set a new target hot end temperature.
+M105 - Send a temperature report to the host.
+M106 - Turn on the fan and set its speed
+M107 - Turn off a fan
+M108 - Break out of the current waiting loop
+M109 - Wait for the hot end to reach its target.
+M110 - Set the current line number.
+M111 - Report and optionally set the debug flags.
+M112 - Shut everything down and halt the machine.
+M113 - Get or set the host keepalive interval.
+M114 - Report the current tool position to the host.
+M115 - Print the firmware info and capabilities.
+M117 - Set the message line on the LCD.
+M118 - Send text to serial
+M119 - Report endstop and probe states to the host.
+M120 - Enable endstops and keep them enabled when not homing.
+M121 - Disable endstops and keep them enabled when not homing.
+M122 - Get TMC Debug Info
+M123 - Report fan speeds from tachometers
+M125 - Save current position and move to filament change position.
+M126 - Open the valve for Baricuda 1.
+M127 - Close the valve for Baricuda 1.
+M128 - Open the valve for Baricuda 2.
+M129 - Close the valve for Baricuda 2.
+M140 - Set a new target bed temperature.
+M141 - Set a new target chamber temperature.
+M143 - Set a new target laser coolant temperature.
+M145 - Set material presets in the LCD menu.
+M149 - Set temperature units to Celsius, Fahrenheit, or Kelvin.
+M150 - Set the color of the RGB(W) LED, backlight, or LED strip.
+M154 - Periodically auto-report position to serial
+M155 - Auto-report temperatures to host periodically.
+M163 - Set a single mix factor for a mixing extruder.
+M164 - Save the current mix as a virtual tool.
+M165 - Set all mix factors for the mixing extruder.
+M166 - Set a Gradient Mix
+M190 - Wait for the bed to reach target temperature.
+M191 - Wait for the chamber to reach target temperature.
+M192 - Wait for the probe temperature sensor to reach a target
+M193 - Set a new target laser coolant temperature.
+M200 - Set the diameter for volumetric extrusion.
+M201 - Set acceleration and frequency limits for print moves.
+M203 - Set maximum feedrate for one or more axes.
+M204 - Set the starting acceleration for moves by type.
+M205 - Set some advanced settings related to movement.
+M206 - Apply a persistent offset
+M207 - Set options for firmware-based retraction.
+M208 - Firmware-retraction recover settings.
+M209 - Enable / disable auto-retraction.
+M211 - Set and/or get the software endstops state
+M217 - Set length and speed for filament swapping
+M218 - Set the offset of a hotend (from hotend 0).
+M220 - Set the global feedrate percentage.
+M221 - Set the flow percentage, which applies to all E moves.
+M226 - Wait for a pin to have a given state.
+M240 - Trigger a camera shutter
+M250 - Set and/or get the LCD contrast.
+M256 - Set and/or get the LCD brightness.
+M260 - Send data to the I2C bus.
+M261 - Request and echo bytes from the I2C bus.
+M280 - Set or get a servo position.
+M281 - Set servo deploy and/or stow angles
+M282 - Detach a servo until its next move
+M290 - Babystep one or more axes
+M300 - Play a single tone, buzz, or beep.
+M301 - Set PID values for a hotend.
+M302 - Set minimum extrusion temperature, allow cold extrusion.
+M303 - Auto-tune the PID system to find stable values.
+M304 - Set PID values for the heated bed.
+M305 - Set (or report) custom thermistor parameters
+M306 - Set MPC values for a hotend.
+M350 - Set micro-stepping for drivers that support it
+M351 - Directly set the micro-stepping pins
+M355 - Turn the case light on or off, set brightness
+M360 - Move to Theta A
+M361 - Move to Theta-B
+M362 - Move to Psi-A
+M363 - Move to Psi-B
+M364 - Move to Psi-C
+M380 - Activate
+M381 - Deactivate all extruder solenoids
+M400 - Wait for all moves to finish
+M401 - Deploy the bed probe
+M402 - Stow the bed probe
+M403 - Set filament type for Multi-Material Unit 2.0
+M404 - Set the nominal diameter for filament width sensor auto-flow
+M405 - Enable filament width sensor flow control
+M406 - Disable filament width sensor flow control
+M407 - Report the measured filament width
+M410 - Stop all steppers instantly
+M412 - Get/set filament runout detection parameters
+M413 - Enable / disable power-loss recovery
+M420 - Get and/or set bed leveling state and parameters
+M421 - Set a single mesh Z height
+M422 - Set a Z motor position for G34 Auto-Alignment
+M423 - Modify, reset, and report X-Axis Twist Compensation data
+M425 - Enable and tune backlash compensation
+M428 - Set home offsets based on current position
+M430 - Read and display current (A), voltage (V), and power (W)
+M486 - Identify and cancel objects
+M500 - Save settings to EEPROM.
+M501 - Restore settings from EEPROM.
+M502 - Restore all settings to factory defaults.
+M503 - Report all settings that may be saved to EEPROM.
+M504 - Validate the contents of the EEPROM.
+M510 - Lock the machine if it has a passcode
+M511 - Unlock the machine if it has a passcode
+M512 - Set a numeric passcode for locking the machine
+M524 - Abort an SD print started with [`M24`](/docs/gcode/M024.html)
+M540 - Abort SD printing when an endstop is triggered.
+M569 - Toggle stealthChop
+M575 - Change the serial baud rate
+M600 - Automatically change filament
+M603 - Configure automatic filament change parameters
+M605 - Set the behavior mode for a multiple nozzle setup
+M665 - Set SCARA geometry values
+M665 - Set delta geometry values
+M666 - Set dual endstop offsets
+M666 - Set Delta endstop adjustments
+M672 - Set Duet Smart Effector sensitivity
+M701 - Load filament
+M702 - Unload filament
+M710 - Set or report controller fan settings
+M7219 - Control Max7219 Segmented LEDs
+M808 - Set or go to a marker for looping G-code
+M810-M819 - Set/execute one of ten G-code macros
+M851 - Set the Z probe XYZ offset from nozzle
+M852 - Misalignment in the XYZ axes.
+M860-M869 - I2C position encoders for closed loop control
+M871 - Configure probe temperature compensation
+M876 - Handle Host prompt responses
+M900 - Get and set Linear Advance K value
+M906 - Set the motor current (in milliamps)
+M907 - Set motor current via digital trimpot
+M908 - Set a digital trimpot directly
+M909 - Report DAC current values to host
+M910 - Commit digipot/DAC value to external EEPROM
+M911 - Driver overtemperature pre-warn condition
+M912 - Clear overtemperature pre-warn condition flag
+M913 - TMC driver switching to spreadCycle
+M914 - Set sensorless homing sensitivity
+M915 - Align ends of the Z axis and test torque
+M916 - Find L6474 drive level (KVAL_HOLD) threshold
+M917 - Find L6474 minimum current thresholds
+M918 - Find L6474 speed threshold
+M919 - Set Chopper Timing values for TMC stepper drivers
+M928 - Log serial input to an SD file
+M951 - Set / report Magnetic Parking Extruder settings
+M993-M994 - load or back up SPI Flash and SD
+M995 - Touch screen calibration for TFT display
+M997 - Perform in-application firmware update
+M999 - Return the machine to Running state
+T0-T6 - Switch to the specified tool
+ */
+
 // Returns 'true' if the string is an INTEGER.
 bool GCodeParser::isInteger(char* str)
 {
@@ -208,49 +467,6 @@ char* GCodeParser::subString(char* str, int left, int right)
     subStr[right - left + 1] = '\0';
     return (subStr);
 }
- 
-// Parsing the input STRING.
-void GCodeParser::parse(char* str)
-{
-   int left  = 0; 
-   int right = 0;
-   int len   = strlen(str);
- 
-   while (right <= len && left <= right) {
-       if (isDelimiter(str[right]) == false)
-           right++;
-
-       if (isDelimiter(str[right]) == true && left == right) {
-          if (isOperator(str[right]) == true)
-              printf("'%c' IS AN OPERATOR\n", str[right]);
-
-          right++;
-          left = right;
-       } 
-       else if (isDelimiter(str[right]) == true && left != right || (right == len && left != right)) {
-          char* subStr = subString(str, left, right - 1);
-
-          if (isKeyword      (subStr) == true) printf("'%s' IS A KEYWORD\n"    , subStr); else 
-          if (isInteger      (subStr) == true) printf("'%s' IS AN INTEGER\n"   , subStr); else 
-          if (isRealNumber   (subStr) == true) printf("'%s' IS A REAL NUMBER\n", subStr); else 
-          if (validIdentifier(subStr) == true && isDelimiter(str[right  - 1]) == false) printf("'%s' IS A VALID IDENTIFIER\n"    , subStr); else
-          if (validIdentifier(subStr) == false && isDelimiter(str[right - 1]) == false) printf("'%s' IS NOT A VALID IDENTIFIER\n", subStr);
-          left = right;
-       }
-   }
-   return;
-}
-
-// DRIVER FUNCTION
-/*int main()
-{
-     // maximum length of string is 100 here
-    char str[100] = "int a = b + 1c; ";
- 
-    parse(str); // calling the parse function
- 
-    return (0);
-}*/
 
 /// <summary>
 /// Remove or processes the comments. 
@@ -268,6 +484,8 @@ void GCodeParser::parse(char* str)
 /// </summary>
 void GCodeParser::ProcessComments()
 {
+   //Serial.println("Processing Comments");
+
    char Comments[MAX_LINE_SIZE + 2];
    Comment[0] = '\0';
    int CommentIndex = 0;
@@ -318,7 +536,6 @@ void GCodeParser::ProcessComments()
          Comment[CommentIndex] = c;
          Comment[CommentIndex+1] = '\0';
          CommentIndex++;
-
       }
       else
          i++;
